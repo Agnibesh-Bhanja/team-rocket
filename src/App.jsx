@@ -1,20 +1,19 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Login from "./pages/login";
+import { Routes, Route } from "react-router-dom";
+import Navbar from "./components/NavBar";
 import Feed from "./pages/Feed";
 import CreatePost from "./pages/CreatePost";
-import Navbar from "./components/NavBar";
+import Login from "./pages/login";
 
-function App() {
+export default function App() {
   return (
-    <BrowserRouter>
+    <>
       <Navbar />
+
       <Routes>
         <Route path="/" element={<Feed />} />
-        <Route path="/login" element={<Login />} />
         <Route path="/create" element={<CreatePost />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
-    </BrowserRouter>
+    </>
   );
 }
-
-export default App;
