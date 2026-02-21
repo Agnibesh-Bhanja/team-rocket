@@ -1,71 +1,61 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { incrementVisit } from "../utils/TrustEngine";
-import { alterPost } from "../utils/missinfo";
+import { incrementReload, trackTime } from "../utils/TrustEngine";
+import { cheatPost } from "../utils/missinfo";
+import PostCard from "../components/PostCard";
 
 export default function Feed() {
   const [posts, setPosts] = useState([]);
-  const [visitCount, setVisitCount] = useState(0);
+  const [trust, setTrust] = useState(0);
 
   useEffect(() => {
-    loadFeed();
+    load(); // initial load
+    // Track time every 5 seconds
+    const interval = setInterval(async () => {
+      await trackTime(5);
+      await load(); // refresh posts + trustScore
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
-  async function loadFeed() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      console.log("User not logged in");
-      return;
-    }
-
-    // Increment trust visit count
-    const newVisitCount = await incrementVisit(supabase, user.id);
-    setVisitCount(newVisitCount);
+  async function load() {
+    // Compute trust score
+    const trustScore = await incrementReload();
+    setTrust(trustScore);
 
     // Fetch posts
-    const { data, error } = await supabase
-      .from("posts")
-      .select("*")
-      .order("created_at", { ascending: false });
-
+    const { data: postsData, error } = await supabase.from("posts").select("*");
     if (error) {
-      console.error(error);
+      console.error("Error fetching posts:", error);
+      setPosts([]);
       return;
     }
 
-    //betrayal logic
-    const modifiedPosts = data.map((post) =>
-      alterPost(post, newVisitCount)
-    );
+    // Compute visibilityScore + apply cheatPost
+    const processed = postsData.map(post => {
+      const avg = post.rating_count > 0 ? post.rating_total / post.rating_count : 0;
+      const recencyBoost = (Date.now() - new Date(post.created_at).getTime()) / 10000000;
 
-    setPosts(modifiedPosts);
+      const visibility = (10 - avg) + (post.report_misinfo || 0) * 2 - recencyBoost;
+
+      return {
+        ...cheatPost(post, trustScore),
+        visibilityScore: visibility
+      };
+    });
+
+    // Sort descending
+    processed.sort((a, b) => b.visibilityScore - a.visibilityScore);
+    setPosts(processed);
   }
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Island Discoveries</h2>
-
-      <p>Visit count: {visitCount}</p>
-
+    <div style={{ padding: "10px" }}>
+      <h3>Trust Score: {trust}</h3>
       {posts.length === 0 && <p>No posts yet.</p>}
-
-      {posts.map((post) => (
-        <div
-          key={post.id}
-          style={{
-            border: "1px solid gray",
-            marginBottom: "10px",
-            padding: "10px",
-          }}
-        >
-          <h3>{post.pokemon_name}</h3>
-          <p>Type: {post.type}</p>
-          <p>Location: {post.location}</p>
-          <p>Size: {post.size}</p>
-        </div>
+      {posts.map(post => (
+        <PostCard key={post.id} post={post} refresh={load} />
       ))}
     </div>
   );
