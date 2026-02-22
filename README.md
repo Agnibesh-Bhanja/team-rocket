@@ -14,7 +14,7 @@ Built with React, Supabase, and deployed on Vercel.
 ## 🚀 Features
 
 - 🔐 User Authentication (Supabase Auth)
-- 📝 Create Pokémon Intel Posts
+- 📝 Created Pokémon Intel Posts
 - 🖼️ Image Upload with Supabase Storage
 - 🎵 Background Music on Interaction
 - ⚡ Logo Shock Animation
