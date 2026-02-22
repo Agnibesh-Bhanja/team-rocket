@@ -1,24 +1,24 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useState } from "react";
+import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/NavBar";
 import Feed from "./pages/Feed";
 import CreatePost from "./pages/CreatePost";
-import Login from "./pages/login";
 import Help from "./pages/Help";
-import RocketControl from "./pages/RocketControl";
+import Login from "./pages/login";
 
-function App() {
+export default function App() {
+  const [purifyMode, setPurifyMode] = useState(false);
+
   return (
-    <BrowserRouter>
-      <Navbar />
+    <div className={purifyMode ? "app red-theme" : "app"}>
+      <Navbar onTogglePurify={() => setPurifyMode(prev => !prev)} />
+
       <Routes>
-        <Route path="/" element={<Feed />} />
+        <Route path="/" element={<Feed purifyMode={purifyMode} />} />
         <Route path="/create" element={<CreatePost />} />
-        <Route path="/login" element={<Login />} />
         <Route path="/help" element={<Help />} />
-        <Route path="/rocket-control" element={<RocketControl />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
-    </BrowserRouter>
+    </div>
   );
 }
-
-export default App;

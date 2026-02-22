@@ -1,83 +1,55 @@
 import { supabase } from "../lib/supabase";
 
-const absurdReasons = [
-  "Too honest for our ecosystem",
-  "Excessive factual stability detected",
-  "Unauthorized credibility spike",
-  "Suspicious integrity pattern"
-];
-
 export default function PostCard({ post, refresh }) {
-  const avgRating =
-    post.rating_count > 0
-      ? (post.rating_total / post.rating_count).toFixed(2)
-      : 0;
+  const avgRating = post.rating_count > 0 ? (post.rating_total / post.rating_count).toFixed(1) : "0.0";
 
   async function rate(value) {
-    const newTotal = post.rating_total + value;
-    const newCount = post.rating_count + 1;
-    const avg = newTotal / newCount;
-
-    let updateData = {
-      rating_total: newTotal,
-      rating_count: newCount
-    };
-
-    if (avg >= 4.5 && newCount >= 5) {
-      updateData.is_banned = true;
-      updateData.ban_reason =
-        absurdReasons[Math.floor(Math.random() * absurdReasons.length)];
-    }
-
-    await supabase.from("posts").update(updateData).eq("id", post.id);
-    refresh();
+    const { error } = await supabase.from("posts").update({ 
+      rating_total: (post.rating_total || 0) + value,
+      rating_count: (post.rating_count || 0) + 1 
+    }).eq("id", post.id);
+    if (!error) refresh();
   }
 
-  async function report(reason) {
-    let field = "report_other";
-    if (reason === "misinfo") field = "report_misinfo";
-    if (reason === "profane") field = "report_profane";
-
-    await supabase
-      .from("posts")
-      .update({ [field]: post[field] + 1 })
-      .eq("id", post.id);
-
-    refresh();
-  }
-
-  if (post.is_banned) {
-    return (
-      <div style={{ border: "1px solid red", padding: 10, marginBottom: 10 }}>
-        <h4>🚫 User Banned</h4>
-        <p>{post.ban_reason}</p>
-      </div>
-    );
+  async function report(type) {
+    const field = type === "misinfo" ? "report_misinfo" : "report_profane";
+    const { error } = await supabase.from("posts").update({ 
+      [field]: (post[field] || 0) + 1 
+    }).eq("id", post.id);
+    if (!error) refresh();
   }
 
   return (
-    <div style={{ border: "1px solid gray", padding: 10, marginBottom: 10 }}>
-      <h4>{post.pokemon_name}</h4>
-      <p>Type: {post.type}</p>
-      <p>Rarity: {post.rarity}</p>
-      <p>Level: {post.level}</p>
-      <p>Stability: {post.stability}</p>
-      <p>Avg Rating: {avgRating}</p>
-
-      <div>
-        Rate:
-        {[1, 2, 3, 4, 5].map(n => (
-          <button key={n} onClick={() => rate(n)}>
-            {n}
-          </button>
-        ))}
+    <div className="post-card">
+      <div className="post-header">
+        <h3 className="post-pokemon-name">{post.pokemon_name}</h3>
+        <span className="trust-score">★ {avgRating}</span>
       </div>
 
-      <div>
-        Report:
-        <button onClick={() => report("misinfo")}>Misinformation</button>
-        <button onClick={() => report("profane")}>Profane</button>
-        <button onClick={() => report("other")}>Other</button>
+      {post.image_url && (
+        <div className="post-image-box">
+          <img src={post.image_url} alt="pokemon" className="post-img" />
+        </div>
+      )}
+
+      <div className="post-stats-grid">
+        <div className="stat-item">LVL: <span className="stat-value">{post.level}</span></div>
+        <div className="stat-item">TYPE: <span className="stat-value">{post.type}</span></div>
+        <div className="stat-item">RARITY: <span className="stat-value">{post.rarity}</span></div>
+        <div className="stat-item">STABILITY: <span className="stat-value">{post.stability}</span></div>
+      </div>
+
+      <div className="post-actions">
+        <p style={{ fontSize: '10px', color: '#facc15' }}>VERIFY INTEL:</p>
+        <div className="star-group">
+          {[1, 2, 3, 4, 5].map(n => (
+            <button key={n} onClick={() => rate(n)} className="star-btn">{n}</button>
+          ))}
+        </div>
+        <div className="report-group">
+          <button onClick={() => report("misinfo")} className="report-btn">REPORT MISINFO</button>
+          <button onClick={() => report("profane")} className="report-btn">PROFANE</button>
+        </div>
       </div>
     </div>
   );
