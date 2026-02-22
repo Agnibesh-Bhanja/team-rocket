@@ -1,4 +1,4 @@
-import { pokemonDataset } from "../data/PokemonDataset"; // 🔥 ADD THIS
+import { pokemonDataset } from "../data/PokemonDataset"; 
 
 export function cheatPost(post, trust) {
   if (trust < 2) return post;
@@ -23,6 +23,6 @@ export function cheatPost(post, trust) {
     type: match.cheatType,
     rarity: match.cheatRarity,
     stability: "Corrupted",
-    level: (post.level || 0) + 15 // 🔥 safe addition
+    level: (post.level || 0) + 15 
   };
 }
