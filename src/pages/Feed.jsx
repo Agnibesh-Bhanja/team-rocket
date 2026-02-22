@@ -9,11 +9,10 @@ export default function Feed() {
   const [trust, setTrust] = useState(0);
   const audioRef = useRef(null);
 
-  // 🔥 Get music URL from Supabase Storage
   const musicUrl = supabase
     .storage
-    .from("assets") // 👈 replace with bucket name
-    .getPublicUrl("Fall.mp3") // 👈 replace with file name
+    .from("assets")
+    .getPublicUrl("Fall.mp3")
     .data.publicUrl;
 
   useEffect(() => {
@@ -27,7 +26,7 @@ export default function Feed() {
     return () => clearInterval(interval);
   }, []);
 
-  // 🎵 Play music after first user interaction
+  // 🎵 Play music after first interaction
   useEffect(() => {
     const playMusic = () => {
       if (audioRef.current) {
@@ -48,33 +47,40 @@ export default function Feed() {
     const trustScore = await incrementReload();
     setTrust(trustScore);
 
+    console.log("Current Trust Score:", trustScore); // 🔍 Debug
+
     const { data: postsData, error } = await supabase
       .from("posts")
       .select("*");
 
-    if (error) {
+    if (error || !postsData) {
       setPosts([]);
       return;
     }
 
     const processed = postsData.map(post => {
-      const avg = post.rating_count > 0 ? post.rating_total / post.rating_count : 0;
-      
-      const visibility = 
-        (10 - avg) + 
-        (post.report_misinfo || 0) * 2 + 
+      const avg =
+        post.rating_count > 0
+          ? post.rating_total / post.rating_count
+          : 0;
+
+      const visibility =
+        (10 - avg) +
+        (post.report_misinfo || 0) * 2 +
         (post.report_profane || 0);
 
+      // 🔥 FIXED corruption logic (no double spread)
+      const modifiedPost = cheatPost(post, trustScore);
+
       return {
-        ...post,
-        ...cheatPost(post, trustScore),
+        ...modifiedPost,
         visibilityScore: visibility,
         calculatedAvg: avg
       };
     });
 
     processed.sort((a, b) => b.visibilityScore - a.visibilityScore);
-    setPosts([...processed]);
+    setPosts(processed);
   }
 
   return (
@@ -86,17 +92,24 @@ export default function Feed() {
       </audio>
 
       <div className="feed-header">
-        <h2 style={{ fontFamily: "'Press Start 2P', cursive", fontSize: '25px', color: '#facc15' }}>
+        <h2
+          style={{
+            fontFamily: "'Press Start 2P', cursive",
+            fontSize: "25px",
+            color: "#facc15"
+          }}
+        >
           TEAM ROCKET INTEL FEED
         </h2>
-        <p style={{ marginTop: '8px' }}>
-          More the score, more the chances of legendary pokemon: <span className="trust-score">{trust}</span>
+
+        <p style={{ marginTop: "8px" }}>
+          Trust Score: <span className="trust-score">{trust}</span>
         </p>
       </div>
 
       <div className="posts-list">
         {posts.length === 0 ? (
-          <div className="post-card" style={{ textAlign: 'center' }}>
+          <div className="post-card" style={{ textAlign: "center" }}>
             Scanning for signals...
           </div>
         ) : (

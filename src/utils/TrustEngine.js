@@ -1,20 +1,30 @@
 import { supabase } from "../lib/supabase";
 
 async function getOrCreateProfile(userId) {
-  const { data: profile, error } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", userId)
-    .maybeSingle(); // maybeSingle() doesn't throw an error if row is missing
+    .maybeSingle();
 
+  // Create new profile if none exists
   if (!profile) {
     const { data: newProfile } = await supabase
       .from("profiles")
-      .insert([{ id: userId, login_count: 1, reload_count: 0, time_spent: 0 }])
+      .insert([
+        {
+          id: userId,
+          login_count: 1,
+          reload_count: 0,
+          time_spent: 0
+        }
+      ])
       .select()
       .single();
+
     return newProfile;
   }
+
   return profile;
 }
 
@@ -23,6 +33,7 @@ export async function incrementReload() {
   if (!user) return 0;
 
   const profile = await getOrCreateProfile(user.id);
+
   const newReload = (profile.reload_count || 0) + 1;
 
   await supabase
@@ -30,7 +41,13 @@ export async function incrementReload() {
     .update({ reload_count: newReload })
     .eq("id", user.id);
 
-  return (profile.login_count || 0) * 2 + newReload + Math.floor((profile.time_spent || 0) / 30);
+  // 🔥 Faster and more noticeable trust growth
+  const trustScore =
+    (profile.login_count || 0) * 5 +
+    newReload * 2 +
+    Math.floor((profile.time_spent || 0) / 10);
+
+  return trustScore;
 }
 
 export async function trackTime(seconds) {

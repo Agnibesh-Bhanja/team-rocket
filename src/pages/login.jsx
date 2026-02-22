@@ -10,14 +10,14 @@ export default function Login() {
   const navigate = useNavigate();
   const audioRef = useRef(null);
 
-  // 🔥 Get public URL from Supabase Storage
+  //Get public URL from Supabase Storage
   const musicUrl = supabase
     .storage
-    .from("assets")   // 👈 replace with your bucket name
-    .getPublicUrl("Team-rocket.mp3") // 👈 replace with your file name
+    .from("assets")   
+    .getPublicUrl("Team-rocket.mp3") 
     .data.publicUrl;
 
-  // 🎵 Play music after first user interaction
+  //Play music after first user interaction
   useEffect(() => {
     const playMusic = () => {
       if (audioRef.current) {
